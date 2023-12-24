@@ -5,10 +5,12 @@ import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 import { CircularProgress, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Stack, TextField } from '@mui/material';
 import { addToFirestore } from '../services/firestore';
+import { Data } from '../static/types';
 
 interface AddRecordModalProps {
     open: number;
     onClose: Function;
+    setData: Function;
 }
 
 interface RecordObject {
@@ -22,10 +24,10 @@ interface RecordObject {
 
 interface ActionObject {
     type: string;
-    payload: Partial<RecordObject>;
+    payload?: Partial<RecordObject>;
 }
 
-export default function AddRecordModal({ open, onClose }: AddRecordModalProps) {
+export default function AddRecordModal({ open, onClose, setData }: AddRecordModalProps) {
 
     const newRecordInitialState: RecordObject = {
         firstName: "",
@@ -38,6 +40,8 @@ export default function AddRecordModal({ open, onClose }: AddRecordModalProps) {
 
     const reducer = (state: RecordObject, action: ActionObject): RecordObject => {
         switch (action.type) {
+            case "RESET":
+                return newRecordInitialState;
             case "TEXT":
                 return {
                     ...state,
@@ -58,10 +62,13 @@ export default function AddRecordModal({ open, onClose }: AddRecordModalProps) {
     const [loading, setLoading] = React.useState<boolean>(false); // State for loading indication
 
     const handleClose = () => {
+        setError(null);
+        setLoading(false)
+        dispatch({ type: "RESET" })
         onClose();
     };
 
-    const handleAddRecord = () => {
+    const handleAddRecord = async () => {
 
         if (loading) {
             return false;
@@ -99,7 +106,21 @@ export default function AddRecordModal({ open, onClose }: AddRecordModalProps) {
             return;
         }
 
-        addToFirestore(newRecord).then(res => setLoading(false))
+        const id = await addToFirestore(newRecord);
+        if (id) {
+            const uploadedData = {
+                ...newRecord,
+                name: `${newRecord.firstName} ${newRecord.lastName}`,
+                id: id
+            }
+            setData((prev: Data[]) => [...prev, uploadedData])
+
+
+            console.log("your file is Upload");
+        } else {
+            console.log("your Data is not saved");
+        }
+        setLoading(false)
     };
 
     return (

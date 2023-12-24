@@ -9,24 +9,15 @@ import {
     Button,
     Typography
 } from '@mui/material';
-import { db } from '../firebase/firebase';
-import { addDoc, collection } from 'firebase/firestore';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { Workbook } from 'exceljs';
 import { addToFirestore } from '../services/firestore';
+import { Data } from '../static/types';
 
 interface UploadFileModalProps {
     open: number;
     onClose: Function;
-}
-
-interface RecordObject {
-    firstName: string;
-    lastName: string;
-    email: string;
-    gender: string;
-    address: string;
-    phone: string;
+    setData: Function;
 }
 
 interface RowData {
@@ -35,19 +26,9 @@ interface RowData {
 
 export default function UploadFileModal(props: UploadFileModalProps) {
 
-    const { open, onClose } = props;
-
-    const newRecordInitialState: RecordObject = {
-        firstName: "",
-        lastName: "",
-        email: "",
-        gender: "",
-        address: "",
-        phone: ""
-    }
+    const { open, onClose, setData } = props;
 
     const [selectedFile, setSelectedFile] = useState<any>(null)
-    const [error, setError] = useState<string | null>(null); // State for handling errors
     const [loading, setLoading] = useState<boolean>(false); // State for loading indication
 
     const handleClose = () => {
@@ -70,7 +51,7 @@ export default function UploadFileModal(props: UploadFileModalProps) {
             email: "email",
             gender: "gender",
             address: "address",
-            mobile: "phone"
+            phone: "mobile"
         }
 
         // Set the Default Values to empty so the cant be undefined anymore
@@ -80,15 +61,15 @@ export default function UploadFileModal(props: UploadFileModalProps) {
             email: "",
             gender: "",
             address: "",
-            phone: "",
+            mobile: "",
         }
 
         // Generate the Payload that saved in the firestore
         const payloadData = data.map((x: any) => {
-            const newData: RowData = defaultValues;
+            const newData: RowData = { ...defaultValues };
 
             for (const [key, value] of Object.entries(x)) {
-                // Check wheather the key is main key or not
+                // Check whether the key is main key or not
                 // Keys like "first name" | "FirstName" | "first_name" will be transformed in "firstName" (value of keyMap)
 
                 let newKey: string = key.toLowerCase().replace(/[^a-zA-Z]/g, '');
@@ -109,8 +90,6 @@ export default function UploadFileModal(props: UploadFileModalProps) {
         if (loading || !selectedFile) {
             return false
         }
-
-
 
         const reader = new FileReader();
 
@@ -170,23 +149,29 @@ export default function UploadFileModal(props: UploadFileModalProps) {
                     // Parse the table data into payload format
                     const parsedData = parseData(jsonData);
 
-                    await parsedData.forEach(async (data: RowData) => {
-                        const status = await addToFirestore(data);
-                        if (status) {
+                    parsedData.forEach(async (data: RowData) => {
+                        const id = await addToFirestore(data);
+                        if (id) {
+                            const uploadedData = {
+                                ...data,
+                                name: `${data.firstName} ${data.lastName}`,
+                                id: id
+                            }
+                            setData((prev: Data[]) => [...prev, uploadedData])
+
                             console.log("your file is Upload");
                         } else {
                             console.log("your Data is not saved");
                         }
                     });
 
-                    setLoading(false);
-                    handleClose();
-
                 } catch (err) {
                     console.log("Error:", err);
-                    setLoading(false);
-                    handleClose();
+                    alert(err);
                 }
+
+                setLoading(false);
+                handleClose();
             }
 
         }
@@ -205,13 +190,6 @@ export default function UploadFileModal(props: UploadFileModalProps) {
                 <Typography id="modal-modal-title" variant="h4" component="h2" align="center">
                     Upload Excel File
                 </Typography>
-
-                {/* Render error message */}
-                {error && (
-                    <Typography color="error" variant="body2" align="center">
-                        {error}
-                    </Typography>
-                )}
 
                 <label className="file-input-button">
                     <UploadFileIcon fontSize={"large"} />

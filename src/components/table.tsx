@@ -305,8 +305,8 @@ export default function DataTable() {
                 </TableContainer>
             </Paper>
 
-            <AddRecordModal open={openModal} onClose={() => setOpenModal(0)} />
-            <UploadFileModal open={openModal} onClose={() => setOpenModal(0)} />
+            <AddRecordModal setData={setData} open={openModal} onClose={() => setOpenModal(0)} />
+            <UploadFileModal setData={setData} open={openModal} onClose={() => setOpenModal(0)} />
         </Box>
     );
 }

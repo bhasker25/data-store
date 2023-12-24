@@ -5,12 +5,9 @@ import { addDoc, collection } from '@firebase/firestore';
 export const addToFirestore = async (newData: any) => {
     try {
         const docRef = await addDoc(collection(db, "data-store"), newData);
-        alert("Data Added to the Database")
-        console.log("Document written with ID: ", docRef.id);
-        return true
+        return docRef.id
     } catch (e) {
-        console.error("Error adding document: ", e);
-        alert("Error: Check the console logs")
+        console.error("Error: ", e);
         return false
     }
 }
